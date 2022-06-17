@@ -6,6 +6,7 @@ from collections import namedtuple
 import pandas as pd
 import numpy as np
 
+#Parse files and assign to variabeles
 skillsTable=pd.read_csv('skills1.csv',sep=',',header=0)
 eskillsTable = pd.read_csv('Employee Skillset1.csv', sep=",", header=0)
 avilibilityTable = pd.read_csv('Employee Availablity1.csv', sep=",", header=0)
