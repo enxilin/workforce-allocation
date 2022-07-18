@@ -226,7 +226,6 @@ for i in unassignlist:
 
 
 ### show the type of the unassigned tasks in an csv file.
-##1.小于结束：0；2.有没有重合，没有重合是1；3.重合的时间是否有空，有空时1
 header = ['Task ID', 'Type', 'Detail','Employee/Skill/Room']
 with open('UnassignTaskType.csv', 'w', encoding='UTF8') as f:
   writer = csv.writer(f)
