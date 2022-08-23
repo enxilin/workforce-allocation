@@ -1,4 +1,4 @@
-#
+# Info: this section imports packages 
 from ast import increment_lineno
 from asyncio import tasks
 from fileinput import filename
@@ -25,10 +25,11 @@ Filename = filedialog.askopenfilename()#a sk for selecting production need docum
 #os.chdir(Folderpath)
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 read_file = pd.read_excel(Filename)
-#transfer xlsx file into csv.
+
+# Note: please ensure all data files are in csv format
+# Info: this section reads .csv files to memory
 read_file.to_csv ('need.csv', index = None, header=True)
 testfile=pd.read_csv('need.csv',sep=',',header=0)
-
 skillsTable=pd.read_csv('skills1.csv',sep=',',header=0)
 eskillsTable = pd.read_csv('Employee Skillset1.csv', sep=",", header=0)
 avilibilityTable = pd.read_csv('Employee Availablity1.csv', sep=",", header=0)
@@ -38,13 +39,15 @@ os.chdir(os.path.dirname(os.path.abspath(__file__)))
 o_tasklist =[tasksTable["Need ID"][i] for i in range(len(tasksTable))]
 timelist=[x/2 for x in list(range(48))]
 
+
 def myround(x):
   if x==0:
     return 0
   else:
     return int(round(x)+1)
 
-def EmployeeTime(x):
+#Info: This section creates variable EmployeeTime :2D array outlines availability for each employee in integer format along with hour format
+  def EmployeeTime(x):
   x.insert(1,"Time","")
   for i in range(len(x)):
     start_str=x.iloc[i,3]
@@ -64,10 +67,12 @@ def EmployeeTime(x):
     employee_time.setdefault(ett.Employee,ett.timeset)
   return(employee_time) 
 
-# a dictionary of employee and their avilibility.
+# Info: this section creates a a dictionary of employee and their availability in integer format (ie a subset of EmployeeTime).
 # eg:key:10001;value:[18,19] whcih means employee are avilible from 9-10am.
 employee_time=EmployeeTime(avilibilityTable)
 
+# Enxi: please change to def format
+# Info: This section updates the taskTable - it has all the info related to production tasks (ie ID, room, project, start_time, predecessors...)
 tasksTable.insert(1,"Time","")
 nb_task=len(tasksTable)
 selected_columns = tasksTable[["Need ID","Time","SkillsetID1"]]
@@ -95,13 +100,15 @@ for i in range(nb_task):
       tasksTable=pd.concat([tasksTable,x_new_row],ignore_index=True)
     tasksTable.iat[i,0]=(tasksTable.iloc[i,0],"0")
 
-
-task_time={} # a dictionary of task and its scheduled time.
+# Info : this section create task time: a dictionary of task and its scheduled time.
+task_time={} 
 TtTime = namedtuple("TeTime", ["Task", "timeset"])
 for tt in tasksTable.iloc[:,0:2].itertuples(index=False):
     ttt=TtTime(*tt)
     task_time.setdefault(ttt.Task,ttt.timeset)
 
+    
+# Info : this section creates task_skill whichi is a a dictionary of task and its required skill set.
 def TaskSkill(x):
   TtSkill = namedtuple("TtSkill", ["Task", "skillset"])
   task_skill={}
@@ -109,8 +116,10 @@ def TaskSkill(x):
     tskt=TtSkill(*tsk)
     task_skill.setdefault(tskt.Task,tskt.skillset)
   return(task_skill)
-task_skill=TaskSkill(tasksTable) # a dictionary of task and its required skill set.
+task_skill=TaskSkill(tasksTable) 
 
+
+# Info : this section creates employee_skills whichi is a dictionary of employee and the skill set they have.
 def EmployeeSkill(x):
   TeSkill = namedtuple("TeSkill", ["Employee", "skillset"])
   employee_skills = {}
@@ -118,10 +127,15 @@ def EmployeeSkill(x):
     eskt= TeSkill(*esk)
     employee_skills.setdefault(eskt.Employee, []).append(eskt.skillset)
   return(employee_skills)
-employee_skills=EmployeeSkill(eskillsTable) # a dictionary of employee and the skill set they have.
+employee_skills=EmployeeSkill(eskillsTable) 
 
-task_room=tasksTable.set_index('Need ID').to_dict()['Room'] # a dictionary of task and the room required for the task.
-task_study=tasksTable.set_index('Need ID').to_dict()['Study Number'] # a didtionar of task and which study/project it belongs to.
+
+
+task_room=tasksTable.set_index('Need ID').to_dict()['Room'] # Info : this section creates a dictionary of task and the room required for the task.
+task_study=tasksTable.set_index('Need ID').to_dict()['Study Number'] # Info : this section creates dictionary  of task and which study/project it belongs to.
+
+
+# This section creates a list for all the skills that we have, all the rooms that we have, all the employees that we have  
 skillslist = [skillsTable["name"][i] for i in range(len(skillsTable))]
 roomlist=['A','B','C']
 employeelist = [avilibilityTable["Employee ID"][i] for i in range(len(avilibilityTable))]
@@ -129,21 +143,18 @@ tasklist = [tasksTable["Need ID"][i] for i in range(len(tasksTable))]
 studylist=['A','B','C']
 
 
-
-
-### Import the model
+### Import the model - this is the start of the doCplex
 from docplex.mp.model import Model
 mdl = Model("employee")
 
-### Define the decision variables
+### Define the decision variables for doCplex model
 # binary variable, 1 indicte task T is assigned to employee E.
 employee_task_vars = mdl.binary_var_matrix(employeelist, tasklist, 'EmployeeAssigned')
 # integer variable, represents for the total number of assigned task.
 total_number_of_assignments = mdl.sum(employee_task_vars[e,t] for e in employeelist for t in tasklist)
 
-### Express the index and constrains
-## Other performance index
-# Index 1: employee's actural working time
+### Create variables
+# Info: create model variables. These variables will serve to create employee_work_time_vars which will contain the the actual optimized working time decided on by the model. Employee_work_time_vars is subsequently used to calculated Total_work variable which is the sum of work for all employees used in the optimization function.  
 work_end_var=mdl.continuous_var_dict(employeelist) # end time of the last task of employee E.
 work_start_var=mdl.continuous_var_dict(employeelist) # 1/(start time of the first task) of employee E.
 employee_work_time_vars = mdl.continuous_var_dict(employeelist, lb=0, name='EmployeeWorkTime') # actural working time for employee E.
@@ -154,7 +165,7 @@ for e in employeelist:
     mdl.add_constraint(employee_work_time_vars[e]== work_end_var[e]+work_start_var[e])
 total_work=mdl.sum(employee_work_time_vars[e] for e in employeelist)
 
-# Index 2: employee's task-project varibility
+# Info: create model variables. These variables will serve to create employee_study_varibility which will contain the the actual optimized projects assigned to employees decided on by the model. employee_study_varibility is subsequently used to calculate total_study_varibility variable which is the total number of projects assigned to employees used in the optimization function.  
 study_number=mdl.integer_var_matrix(employeelist,studylist) # number of task assigned to employee E and belongs to study S.
 number=mdl.binary_var_matrix(employeelist,studylist) # a binary varible, 1 if the employee E is assigned a task belongs to study S.
 employee_study_varibility=mdl.integer_var_dict(employeelist) # number of study that employee E involved in.
@@ -168,7 +179,9 @@ for e in employeelist:
   employee_study_varibility[e]=mdl.sum(number[e,s] for s in studylist)
 total_study_varibility=mdl.sum(employee_study_varibility[e] for e in employeelist)
 
-# Constrain 1: when employee are unavaibele, he can not be assigned any tasks starting that time.
+
+### Info: Create constraints
+# Info: Constraint 1: when employee are unavaibele, he can not be assigned any tasks starting that time.
 nb_tasks = len(tasksTable)
 for e in employeelist:
   for t in tasklist:
@@ -176,7 +189,7 @@ for e in employeelist:
     if all(elem in employee_time[e] for elem in task_time[t])==False:
       mdl.add_constraint(employee_task_vars[e, t] == 0)
 
-# Constrain 2: can not assign overlap task; employee perform one task at each t.
+#  Info: Constraint 2: can not assign overlap task; employee perform one task at each t.
 for i1 in range(nb_tasks):
     for i2 in range(i1 + 1, nb_tasks):
       s1=tasksTable.iloc[i1,0]
@@ -186,18 +199,18 @@ for i1 in range(nb_tasks):
         for n in employeelist:
           mdl.add_constraint(employee_task_vars[n, s1] + employee_task_vars[n, s2] <= 1)
 
-# Constrain3: enforce skill requirements for selected task.
+#  Info: Constraint 3: enforce skill requirements for selected task.
 for task in tasklist:
   for employee in employeelist:
     if len(set(employee_skills[employee])& set(task_skill[task]))==0:# check if two lists have common elements.
       mdl.add_constraint(employee_task_vars[employee, task] == 0)
 
-# Constrain4: one task only need one employee.
+#  Info: Constraint 4: one task only need one employee.
 for s in tasklist:
     total_assigned= mdl.sum(employee_task_vars[n, s] for n in employeelist) # number of task is assigned to task T.
     mdl.add_constraint(total_assigned<= 1)
 
-# Constrain5: only pick one time window for each task.
+#  Info: Constraint 5: only pick one time window for each task.
 for i1 in range(nb_tasks):
     s1=tasksTable.iloc[i1,0]
     total_assigned_s1= mdl.sum(employee_task_vars[n, s1] for n in employeelist)
@@ -207,7 +220,7 @@ for i1 in range(nb_tasks):
       if s1[0]==s2[0]:
           mdl.add_constraint(total_assigned_s1 + total_assigned_s2<= 1)
 
-# Constrain6: job room limitation.
+#  Info: Constraint 6: job room limitation.
 for h in timelist:
   for r in roomlist:
     total_assign=0
@@ -216,7 +229,7 @@ for h in timelist:
         total_assign+=mdl.sum(employee_task_vars[e,t] for e in employeelist)
     mdl.add_constraint(total_assign<=1)
 
-#constrain7: tasks precessors
+#  Info: Constraint 7: tasks precessors
 for i in range(nb_tasks):
   t=tasksTable.iloc[i,0]
   if np.isnan(tasksTable.iloc[i,10])==False:
@@ -233,7 +246,7 @@ for i in range(nb_tasks):
         if timeB<=timeA:
           mdl.add_constraint(total_assign_j+total_assign_t<=1)
 
-##i#nformations of model
+##i#nformations of model (for troubleshooting purposes)
 mdl.add_kpi(total_number_of_assignments,"number of assigned task")
 mdl.add_kpi(total_study_varibility,'study_varibility')
 mdl.print_information()
