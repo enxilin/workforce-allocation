@@ -85,7 +85,7 @@ def UpdateTask(x):
       plus_num=int(plus[:len(plus)-3])*2+myround(int(plus[-2:])/60)
       x.iat[i,1]=timelist[taskstart:taskend]
       assignTable.iat[i,1]=timelist[taskstart:taskend]
-      # we adjust the entire task time forward or backward according in units of half an hour.
+      # we adjust the entire task time forward or backward according to its allowable deviation in units of half an hour.
       # and add it into table as a new task.
       for j in range(1,minus_num+1):
         x_new_row=pd.DataFrame({'Need ID':[(x.iloc[i,0],"-",j)],'SkillsetID1':[x.iloc[i,2]],
