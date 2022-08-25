@@ -19,8 +19,8 @@ import matplotlib.patches as mpatches
 import matplotlib.gridspec as gridspec
 
 # Note: please ensure all data files are in csv format. (Production Need, Employee schedual, Employee Skillset)
-# This workforce allocation.py file and Employee Skillset file should be store in the location of Cplex.
-# Production Need & Employee schedual file shoud keep the same column name with sample files.
+# This workforce allocation.py file and Employee Skillset file should be stored in the location of Cplex.
+# Production Need & Employee schedual file shoud keep the same column name with sample files. (the program assumes these column titles will not change)
 
 
 root = tkinter.Tk()
@@ -63,11 +63,13 @@ def EmployeeTime(x):
   employee_time=x.set_index('Employee ID').to_dict()['Time']
   return(employee_time) 
 
-# Info: this section creates a a dictionary of employee and their availability in integer format (ie a subset of EmployeeTime).
+# Info: this section creates a a dictionary (employee_time) of employee and their availability in integer format (ie a subset of EmployeeTime).
 # eg:key:10001;value:[18,19] whcih means employee are avilible from 9-10am.
 employee_time=EmployeeTime(avilibilityTable)
 
 # Info: This section updates the taskTable - it has all the info related to production tasks (ie ID, room, project, start_time, predecessors...)
+# Note: to handle positive and negative variabilities of a possible task time, the software creates muliple copies of the task (one copy for each 30 min increment of variability)
+#   For example if a task had +/- 60 min time variability, there would be a total of 5 instances of that task (1 original + 2 negative variability copies + 2 positive variability copies) 
 def UpdateTask(x):
   x.insert(1,"Time","")
   nb_task=len(x)
@@ -81,6 +83,7 @@ def UpdateTask(x):
       minus_num=int(minus[:len(minus)-3])*2+myround(int(minus[-2:])/60)
       plus_num=int(plus[:len(plus)-3])*2+myround(int(plus[-2:])/60)
       x.at[i,'Time']=timelist[taskstart:taskend]
+      
       # we adjust the entire task time forward or backward according in units of half an hour.
       # and add it into table as a new task.
       if minus_num !=0:
@@ -97,7 +100,7 @@ def UpdateTask(x):
   return(x)
 tasksTable=UpdateTask(tasksTable)
 
-# Info : this section creates employee_skills whichi is a dictionary of employee and the skill set they have.
+# Info : this section creates employee_skills which is a dictionary of employee and the skill set they have.
 def EmployeeSkill(x):
   TeSkill = namedtuple("TeSkill", ["Employee", "skillset"])
   employee_skills = {}
@@ -126,8 +129,9 @@ from docplex.mp.model import Model
 mdl = Model("employee")
 
 ### Define the decision variables for doCplex model
-# binary variable, 1 indicte task T is assigned to employee E.
-employee_task_vars = mdl.binary_var_matrix(employeelist, tasklist, 'EmployeeAssigned')
+# binary variable, 1 indicte task T is assigned to employee E. employee_task_vars is a 2D variable
+employee_task_vars = mdl.binary_var_matrix(employeelist, tasklist)
+
 # integer variable, represents for the total number of assigned task.
 total_number_of_assignments = mdl.sum(employee_task_vars[e,t] for e in employeelist for t in tasklist)
 
@@ -145,12 +149,19 @@ for e in employeelist:
     mdl.add_constraint(employee_work_time_vars[e]== work_end_var[e]+work_start_var[e])
 total_work=mdl.sum(employee_work_time_vars[e] for e in employeelist)
 
-# Info: create model variables. 
+# Info: create model variables and constraints. 
 # These variables will serve to create employee_study_varibility which will contain the the actual optimized different projects assigned to employees decided on by the model. 
 # employee_study_varibility is subsequently used to calculate total_study_varibility variable which is the total number of different projects assigned to employees used in the optimization function.  
 study_number=mdl.integer_var_matrix(employeelist,studylist) # number of task assigned to employee E and belongs to study S.
 number=mdl.binary_var_matrix(employeelist,studylist) # a binary varible, 1 if the employee E is assigned a task belongs to study S.
 employee_study_varibility=mdl.integer_var_dict(employeelist) # number of different study that employee E involved in.
+
+# Constraint 0: 
+# To minimize the number of projects two variables were created : -
+#       - Study_number : the number of tasks associated to a given study for each employee (2D variable)
+#       - number : integer indicating if a study has been associated to a given employee (0 or 1) (2D variabl)
+#   Constraint : study_number >= number for a given study for a given employee
+#   Constraint : number * the number of all assigned task for all projects >= study_number for that employee for that project
 
 nb_tasks = len(tasksTable)
 for e in employeelist:
@@ -163,15 +174,14 @@ for e in employeelist:
 total_study_varibility=mdl.sum(employee_study_varibility[e] for e in employeelist)
 
 
-### Info: Create constraints
-# Info: Constraint 1: when employee are unavaibele, he can not be assigned any tasks starting that time.
+# Info: Constraint 1: when employee are unavaibele, he can not be assigned any tasks starting that time. (ie set employee_task_vars to 0 when employee is not available to work)
 for e in employeelist:
   for t in tasklist:
     # check if the list of employee's avariblity has common elements with the list of task scheduled time.
     if all(elem in employee_time[e] for elem in task_time[t])==False:
       mdl.add_constraint(employee_task_vars[e, t] == 0)
 
-#  Info: Constraint 2: can not assign overlap task; employee perform one task at each t.
+#  Info: Constraint 2: can not assign overlap task; employee perform one task at each t. (it looks at any tasks which overlaps at the same time, and then ensures that these are not assigned to a given employee)
 for i1 in range(nb_tasks):
     for i2 in range(i1 + 1, nb_tasks):
       s1=tasksTable.loc[i1,'Need ID']
@@ -192,7 +202,8 @@ for s in tasklist:
     total_assigned= mdl.sum(employee_task_vars[n, s] for n in employeelist) # number of task is assigned to task T.
     mdl.add_constraint(total_assigned<= 1)
 
-#  Info: Constraint 5: only pick one time window for each task.
+#  Info: Constraint 5: only pick one time window for each task. (this is constructed very similar to constraint 2). 
+# This constraint to select only 1 instance of a taskID from the tasksTable - which can contain multiple instances of a NeedID (when there are positive and/or negative variabilities associated to that task) 
 for i1 in range(nb_tasks):
     s1=tasksTable.loc[i1,'Need ID']
     total_assigned_s1= mdl.sum(employee_task_vars[n, s1] for n in employeelist)
@@ -202,7 +213,9 @@ for i1 in range(nb_tasks):
       if s1[0]==s2[0]:
           mdl.add_constraint(total_assigned_s1 + total_assigned_s2<= 1)
 
-#  Info: Constraint 6: job room limitation.
+#  Info: Constraint 6: job room limitation. 
+# Current this ensures that there is no more than one task being performed in a room at a given time. 
+# Note you can set the maximium number of concurent tasks in a room at a given time using this constraint
 for h in timelist:
   for r in roomlist:
     total_assign=0
@@ -212,6 +225,11 @@ for h in timelist:
     mdl.add_constraint(total_assign<=1)
 
 #  Info: Constraint 7: tasks precessors
+# The purpose of this section is to ensure that the task predecessors are completed prior to the start of a given task
+# this is accomplished by:
+#     Step 1 : the total number of assigned task T should always less or equal than total number of assigned predecessor tasks.
+#     Step 2 : if start time of the task < end time predecessor then [...]
+#     note: a deeper dive is needed to better understand this constraint
 for i in range(nb_tasks):
   t=tasksTable.loc[i,'Need ID']
   if pd.isna(tasksTable.loc[i,'Predecessors'])==False:
@@ -220,24 +238,20 @@ for i in range(nb_tasks):
     for j in range(nb_tasks):
       if tasksTable.loc[j,'Need ID'][0]==p:
         timeA=task_time[tasksTable.loc[j,'Need ID']][-1] # time A is the ending time of predecessor
-        total_assign_t=mdl.sum(employee_task_vars[e,t] for e in employeelist)
-        total_assign_j=mdl.sum(employee_task_vars[e,tasksTable.loc[j,'Need ID']] for e in employeelist)
+        total_assign_t=mdl.sum(employee_task_vars[e,t] for e in employeelist) # total number of assigned task for all employees
+        total_assign_j=mdl.sum(employee_task_vars[e,tasksTable.loc[j,'Need ID']] for e in employeelist) # total number of assigned predecessors task for all employees
         # number of assigned task T should always less or equal than number of assigned predecessor.
         mdl.add_constraint(total_assign_t<=total_assign_j) 
+        
         # if predecessor is late than task T, we only assign one or none of two tasks.
         if timeB<=timeA:
           mdl.add_constraint(total_assign_j+total_assign_t<=1)
-
-##i#nformations of model (for troubleshooting purposes)
-mdl.add_kpi(total_number_of_assignments,"number of assigned task")
-mdl.add_kpi(total_study_varibility,'study_varibility')
-mdl.print_information()
 
 
 ###Aim function and slove
 mdl.maximize(10*total_number_of_assignments-0.1*total_work)#-total_study_varibility-0.1*total_work
 s = mdl.solve()
-mdl.report()
+
 
 
 ### Output of the model
