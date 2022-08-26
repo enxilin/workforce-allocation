@@ -376,7 +376,7 @@ with open('UnassignTaskType.csv', 'w', encoding='UTF8') as f:
   writer = csv.writer(f)
   writer.writerow(header)
   
-  #find tasks which were not completed because predecessor was not completed and remove from the unassigned list
+  # find tasks which were not completed because predecessor was not completed, write the info to the file and remove those tasks from the unassigned list.
   deletelist=[]
   for i in unassignlist:
     Predecessor=tasksTable.loc[tasksTable["Need ID"]==(i,"0")]['Predecessors'].tolist()[0]
@@ -387,7 +387,7 @@ with open('UnassignTaskType.csv', 'w', encoding='UTF8') as f:
   newunassignlist=set(unassignlist)^set(deletelist)
   deletelist.clear()  
   
-  
+  # classify remaining tasks which have been unassigned due to room limitations, write to file and remove the task from the unassigned list.
   for i in unassignlist:
     Skill=task_skill[(i,"0")]
     Room=task_room[(i,"0")]
@@ -397,6 +397,7 @@ with open('UnassignTaskType.csv', 'w', encoding='UTF8') as f:
     nb_negative=myround(int(Deviation_n[-2:])/60)+float(Deviation_n[:len(Deviation_n)-3])*2
     nb_positive=myround(int(Deviation_p[-2:])/60)+float(Deviation_p[:len(Deviation_p)-3])*2   
     case=0
+    
     for j in range(-1*int(nb_negative),int(nb_positive)+1): # each allowable time deviation of the unassigned task:
       time_window=(np.array(task_time[(i,"0")])+j*0.5).tolist()
       # chck if any employee have free time to do this assigned task at the specific time window
@@ -413,7 +414,11 @@ with open('UnassignTaskType.csv', 'w', encoding='UTF8') as f:
       deletelist.append(i)
   newunassignlist=set(unassignlist)^set(deletelist)
 
-  # In this version: when we speak of work overtime, we only refer to leave off later.
+  # classify remaining tasks which have been unassigned into need overtime or need more skills, write to file and remove the task from the unassigned list.
+  # can be resolved by overtime : means that if an employee is able to work additional hours, then the task can be completed
+  # can be resolved by more skills : means that even if the employee was available to work additional hours (after their last task), the task could not be completed.
+  # note : overtime is defined as working additional hours after the end time, NOT work additional hours before the start time
+  
   for i in newunassignlist:
     Skill=task_skill[(i,"0")]
     EmployeeList=eskillsTable[eskillsTable['Skillset ID']== Skill]['Employee ID'].tolist()
@@ -435,4 +440,4 @@ with open('UnassignTaskType.csv', 'w', encoding='UTF8') as f:
     if sum(index)>0:
       writer.writerow([i,'III','Task can be done if employee work longer time'])
     else:
-      writer.writerow([i,'IV','We should tran more employee for skill:',Skill])
+      writer.writerow([i,'IV','We should train more employee for skill:',Skill])
