@@ -1,0 +1,8 @@
+Task ID,Type,Detail,Employee/Skill/Room
+2006,I,The task can not be done due to its Predecessor,2007.0
+2019,II,The task can not be done due to room limitation,A
+2004,II,The task can not be done due to room limitation,A
+2006,II,The task can not be done due to room limitation,C
+2010,II,The task can not be done due to room limitation,A
+2002,III,Task can be done if employee work longer time
+2007,IV,We should tran more employee for skill:,D
