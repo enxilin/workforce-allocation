@@ -194,7 +194,7 @@ for i1 in range(nb_tasks):
       # check if the list of shcedualed time for two tasks have common elements
       if len(set(tasksTable.iloc[i1,1]) & set(tasksTable.iloc[i2,1]))>0:
         for n in employeelist:
-          mdl.add_constraint(employee_task_vars[n, s1] + employee_task_vars[n, s2] <= 1)
+          mdl.add_constraint(employee_task_vars[n, s1] + employee_task_vars[n, s2] <= 2)
 
 #  Info: Constraint 3: enforce skill requirements for selected task.
 for task in tasklist:
