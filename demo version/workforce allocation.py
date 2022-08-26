@@ -261,9 +261,10 @@ s = mdl.solve()
 
 ### Output of the model
 
-## employee actural working time & table for employee and room schedual
-# find the actural startind and ending time for each employee 
-work_time=[]
+## employee actual working time & table for employee and room schedual
+# find the actual startind and ending time for each employee 
+# work_time is a list (1D) of the total hours worked by each employee in the day
+work_time=[] 
 employee_end_time={}
 for e in employeelist:
   start_time= 24
@@ -277,7 +278,8 @@ for e in employeelist:
 total_work_hours=sum(work_time)
 print("The total work hours is",total_work_hours,"hours")
 
-# shared code
+
+# shared code : creates labels for figures
 def createLabels(ax, title, xlabel, ylabel):
   tmin=int(min(employee_time.values())[0])
   tmax=math.ceil(int(max(employee_time.values())[-1])+0.5)
@@ -315,6 +317,8 @@ def displayTasksAssignmentsGantt(ax):
                   
     ylabels.append("{}:{}".format(str(n),employee_skills[n])) # (3)number of total hours works
     tickloc.append(i + 0.5)
+
+  #configure plot paramaters
   plt.ylim(0, len(employeelist))
   plt.yticks(tickloc, ylabels)
   plt.legend(handles=[red_patch][0])#[0] beacuse error:'list' object has no attribute 'get_label'
@@ -371,6 +375,8 @@ header = ['Task ID', 'Type', 'Detail','Employee/Skill/Room']
 with open('UnassignTaskType.csv', 'w', encoding='UTF8') as f:
   writer = csv.writer(f)
   writer.writerow(header)
+  
+  #find tasks which were not completed because predecessor was not completed and remove from the unassigned list
   deletelist=[]
   for i in unassignlist:
     Predecessor=tasksTable.loc[tasksTable["Need ID"]==(i,"0")]['Predecessors'].tolist()[0]
@@ -380,6 +386,8 @@ with open('UnassignTaskType.csv', 'w', encoding='UTF8') as f:
         deletelist.append(i)
   newunassignlist=set(unassignlist)^set(deletelist)
   deletelist.clear()  
+  
+  
   for i in unassignlist:
     Skill=task_skill[(i,"0")]
     Room=task_room[(i,"0")]
