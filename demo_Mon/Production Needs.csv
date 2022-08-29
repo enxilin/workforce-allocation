@@ -28,4 +28,4 @@ Need ID,Skillset ID,Start Time,End Time,Allowable Positive Deviation,Allowable N
 227,B,17:00,18:00,0:30,0:30,B,,B
 228,E,16:30,18:00,0:30,0:30,B,,B
 229,D,17:30,18:00,0:30,0:30,A,,A
-230,A,18:00,18:30,0:30,0:30,A,,A
+230,A,17:30,18:00,0:30,0:30,A,,A
