@@ -1,7 +1,0 @@
-Task ID,Type,Detail,Employee/Skill/Room
-206,I,The task can not be done due to its Predecessor,207.0
-204,II,The task can not be done due to room limitation,A
-207,II,The task can not be done due to room limitation,B
-210,II,The task can not be done due to room limitation,C
-219,II,The task can not be done due to room limitation,A
-202,III,Task can be done if employee work longer time
