@@ -1,0 +1,7 @@
+Task ID,Type,Detail,Employee/Skill/Room
+208,I,The task can not be done due to its Predecessor,207.0
+210,IV,We should train more employee for skill:,A
+202,III,Task can be done if employee work longer time
+219,IV,We should train more employee for skill:,B
+205,IV,We should train more employee for skill:,C
+207,IV,We should train more employee for skill:,D
