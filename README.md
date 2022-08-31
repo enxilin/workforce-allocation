@@ -44,4 +44,17 @@ the maximize function: mdl.maximize(10*total_number_of_assignments-0.1*total_wor
  
  
  
+Folder demo:
+
+new function: pop out window asking use to select the file for production need and employee schedual.
+
+new function: store the output file and plots at the location of cplex.
+
+Production Needs.csv: delet some useless column. make the time for task and its predecessor more reasonable. make the task and its predecessor in the same project. change the name of column. change the name of task id and employee id.
+
+
+ 
+ 
+ 
+ 
   
