@@ -52,6 +52,10 @@ new function: store the output file and plots at the location of cplex.
 
 Production Needs.csv: delet some useless column. make the time for task and its predecessor more reasonable. make the task and its predecessor in the same project. change the name of column. change the name of task id and employee id.
 
+Employee-Task(colored by project).png is per employee : sequence of tasks color coded by project (label with skill), shows total # of projects, total working time
+
+
+
 
  
  
