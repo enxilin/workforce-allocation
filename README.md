@@ -28,17 +28,19 @@
               draw plot for employee and task assigned to them, plot for room and task assigned to the room.
  
  
- Folder objective 5:
+Folder objective 5:
  objective 5 have a new varible task predecessors. new constraint: if the predecessors of the task was not asssigned and completed, the task can not be assigned.
  
  update the unassigned task classification.
  
  
- Folder objective 6:
+Folder objective 6:
  
- objective 6 have a new variable employee study variability: how many study is the employee involved in.
+objective 6 have a new variable employee study variability: how many study is the employee involved in.
  
- workforce_study_varibility_version2
+the maximize function: mdl.maximize(10*total_number_of_assignments-0.1*total_work-total_study_varibility)
+ 
+ workforce_study_varibility_version2 is the version we use. the running speed of version 1 is too slow.
  
  
  
